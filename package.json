@@ -1,11 +1,11 @@
 {
-  "name": "nodebb-plugin-sso-oauth",
-  "version": "0.5.0",
-  "description": "NodeBB Generic OAuth SSO",
+  "name": "nodebb-plugin-sso-mediawiki",
+  "version": "0.2.0",
+  "description": "NodeBB OAuth SSO for MediaWiki",
   "main": "library.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/julianlam/nodebb-plugin-sso-oauth"
+    "url": "https://github.com/mudkipme/nodebb-plugin-sso-mediawiki.git"
   },
   "keywords": [
     "nodebb",
@@ -15,28 +15,27 @@
     "sso",
     "single sign on",
     "login",
-    "registration"
+    "registration",
+    "mediawiki"
   ],
   "author": {
-    "name": "Julian Lam",
-    "email": "julian@nodebb.org"
+    "name": "Mudkip",
+    "email": "i@mudkip.me"
   },
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/julianlam/nodebb-plugin-sso-oauth/issues"
+    "url": "https://github.com/mudkipme/nodebb-plugin-sso-mediawiki/issues"
   },
   "readme": "",
   "readmeFilename": "README.md",
   "dependencies": {
-    "async": "^3.2.0",
-    "eslint": "^7.7.0",
     "passport-oauth": "~1.0.0"
   },
   "nbbpm": {
-    "compatibility": "^1.0.1",
-    "index": false
+    "compatibility": "^1.0.1"
   },
   "devDependencies": {
+    "eslint": "^7.7.0",
     "@commitlint/config-angular": "^8.3.4",
     "eslint-config-airbnb-base": "^14.1.0",
     "eslint-plugin-import": "^2.20.1",

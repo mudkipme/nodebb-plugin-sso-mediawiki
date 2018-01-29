@@ -21,11 +21,9 @@
 	const db = require.main.require('./src/database');
 	const authenticationController = require.main.require('./src/controllers/authentication');
 
-	const async = require('async');
-
-	const passport = module.parent.require('passport');
-	const nconf = module.parent.require('nconf');
-	const winston = module.parent.require('winston');
+	const passport = require.main.require('passport');
+	const nconf = require.main.require('nconf');
+	const winston = require.main.require('winston');
 
 	/**
 	 * REMEMBER
@@ -46,23 +44,22 @@
 	 *   `OAUTH__ID=someoauthid OAUTH__SECRET=youroauthsecret node app.js`
 	 */
 
+	let scriptPath = nconf.get('oauth:root') || 'https://en.wikipedia.org/w/';
+	if (scriptPath.substr(-1) !== '/') {
+		scriptPath += '/';
+	}
+
 	const constants = Object.freeze({
-		type: '',	// Either 'oauth' or 'oauth2'
-		name: '',	// Something unique to your OAuth provider in lowercase, like "github", or "nodebb"
+		type: 'oauth',
+		name: nconf.get('oauth:name') || 'wiki',
 		oauth: {
-			requestTokenURL: '',
-			accessTokenURL: '',
-			userAuthorizationURL: '',
-			consumerKey: nconf.get('oauth:key'),	// don't change this line
-			consumerSecret: nconf.get('oauth:secret'),	// don't change this line
+			requestTokenURL: scriptPath + 'index.php?title=Special:OAuth/initiate',
+			accessTokenURL: scriptPath + 'index.php?title=Special:OAuth/token',
+			userAuthorizationURL: scriptPath + 'index.php?title=Special:OAuth/authorize',
+			consumerKey: nconf.get('oauth:key'),
+			consumerSecret: nconf.get('oauth:secret'),
 		},
-		oauth2: {
-			authorizationURL: '',
-			tokenURL: '',
-			clientID: nconf.get('oauth:id'),	// don't change this line
-			clientSecret: nconf.get('oauth:secret'),	// don't change this line
-		},
-		userRoute: '',	// This is the address to your app's "user profile" API endpoint (expects JSON)
+		userRoute: scriptPath + 'api.php?action=query&meta=userinfo&uiprop=email&format=json',
 	});
 
 	const OAuth = {};
@@ -96,7 +93,7 @@
 						}
 
 						try {
-							var json = JSON.parse(body);
+							const json = JSON.parse(body);
 							OAuth.parseUserReturn(json, function (err, profile) {
 								if (err) return done(err);
 								profile.provider = constants.name;
@@ -120,7 +117,7 @@
 						}
 
 						try {
-							var json = JSON.parse(body);
+							const json = JSON.parse(body);
 							OAuth.parseUserReturn(json, function (err, profile) {
 								if (err) return done(err);
 								profile.provider = constants.name;
@@ -152,7 +149,7 @@
 				name: constants.name,
 				url: '/auth/' + constants.name,
 				callbackURL: '/auth/' + constants.name + '/callback',
-				icon: 'fa-check-square',
+				icon: 'fa-wikipedia-w',
 				scope: (constants.scope || '').split(','),
 			});
 
@@ -167,10 +164,11 @@
 		// NodeBB *requires* the following: id, displayName, emails.
 		// Everything else is optional.
 
-		// Find out what is available by uncommenting this line:
-		// console.log(data);
+		if (data.query && data.query.userinfo) {
+			data = data.query.userinfo;
+		}
 
-		var profile = {};
+		const profile = {};
 		profile.id = data.id;
 		profile.displayName = data.name;
 		profile.emails = [{ value: data.email }];
@@ -178,11 +176,6 @@
 		// Do you want to automatically make somebody an admin? This line might help you do that...
 		// profile.isAdmin = data.isAdmin ? true : false;
 
-		// Delete or comment out the next TWO (2) lines when you are ready to proceed
-		process.stdout.write('===\nAt this point, you\'ll need to customise the above section to id, displayName, and emails into the "profile" object.\n===');
-		return callback(new Error('Congrats! So far so good -- please see server log for details'));
-
-		// eslint-disable-next-line
 		callback(null, profile);
 	};
 
@@ -220,20 +213,9 @@
 
 	OAuth.getUidByOAuthid = async (oAuthid) => db.getObjectField(constants.name + 'Id:uid', oAuthid);
 
-	OAuth.deleteUserData = function (data, callback) {
-		async.waterfall([
-			async.apply(User.getUserField, data.uid, constants.name + 'Id'),
-			function (oAuthIdToDelete, next) {
-				db.deleteObjectField(constants.name + 'Id:uid', oAuthIdToDelete, next);
-			},
-		], function (err) {
-			if (err) {
-				winston.error('[sso-oauth] Could not remove OAuthId data for uid ' + data.uid + '. Error: ' + err);
-				return callback(err);
-			}
-
-			callback(null, data);
-		});
+	OAuth.deleteUserData = async function (data) {
+		const oAuthIdToDelete = await User.getUserField(data.uid, constants.name + 'Id');
+		await db.deleteObjectField(constants.name + 'Id:uid', oAuthIdToDelete);
 	};
 
 	// If this filter is not there, the deleteUserData function will fail when getting the oauthId for deletion.
